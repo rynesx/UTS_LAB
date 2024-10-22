@@ -1,14 +1,15 @@
 <?php
-$servername = "localhost";
-$username = "root";  // Ganti sesuai dengan user MySQL Anda
-$password = "";      // Ganti sesuai dengan password MySQL Anda
-$dbname = "todo_list_db";
+$host = 'localhost';
+$dbname = 'todo_list';
+$username = 'root';
+$password = '';
 
-// Membuat koneksi
-$conn = mysqli_connect($servername, $username, $password, $dbname);
 
-// Cek koneksi
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Could not connect to the database $dbname :" . $e->getMessage());
 }
 ?>

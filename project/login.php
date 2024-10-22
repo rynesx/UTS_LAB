@@ -1,33 +1,30 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+include('../includes/db.php');
+include('../includes/functions.php');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $email = cleanInput($_POST['email']);
     $password = $_POST['password'];
 
-    // Mengecek apakah email pengguna terdaftar
-    $sql = "SELECT * FROM users WHERE email = '$email'";
-    $result = mysqli_query($conn, $sql);
+    // Prepare and execute the SQL statement to get the user
+    $sql = "SELECT * FROM users WHERE email = :email";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['email' => $email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (mysqli_num_rows($result) === 1) {
-        $user = mysqli_fetch_assoc($result);
-
-        // Verifikasi password
-        if (password_verify($password, $user['password'])) {
-            // Simpan informasi user di session
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            header("Location: dashboard.php");
-            exit();
-        } else {
-            echo "Password salah!";
-        }
+    // Check if user exists and verify password
+    if ($user && password_verify($password, $user['password'])) {
+        // Successful login logic (e.g., starting session, redirecting)
+        session_start();
+        $_SESSION['user_id'] = $user['id'];
+        header("Location: dashboard.php");
+        exit();
     } else {
-        echo "Email tidak ditemukan!";
+        $error_message = "Invalid email or password.";
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -35,16 +32,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom right, #6DB3F2, #1E69DE);
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            width: 700px;
+            height: auto;
+        }
+
+        .login-container {
+            flex: 1;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .login-container h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .login-container input[type="email"], 
+        .login-container input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 25px;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .login-container input[type="email"]::placeholder,
+        .login-container input[type="password"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .login-container input[type="submit"] {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            background-color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1E69DE;
+        }
+
+        .login-container input[type="submit"]:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Box sign-up */
+        .signup-container {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .signup-container h3 {
+            margin-bottom: 20px;
+        }
+
+        .signup-container p {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .signup-container .signup-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1E69DE;
+        }
+
+        .signup-container .signup-btn:hover {
+            background-color: #f1f1f1;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Login</h2>
-    <form method="POST" action="login.php">
-        <label for="email">Email:</label><br>
-        <input type="email" id="email" name="email" required><br><br>
-        <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
+
+    <div class="container">
+        <!-- Login Box -->
+        <div class="login-container">
+            <h2>Login</h2>
+            <?php if (!empty($error)): ?>
+                <p class="error-message"><?php echo $error; ?></p>
+            <?php endif; ?>
+            <form action="login.php" method="POST">
+                <input type="email" name="email" placeholder="name@mail.com" required>
+                <input type="password" name="password" placeholder="********" required>
+                <input type="submit" value="Log In">
+            </form>
+        </div>
+
+        <!-- Sign Up Box -->
+        <div class="signup-container">
+            <h3>Belum bergabung?</h3>
+            <p>Gabung sekarang untuk mendapatkan akses penuh.</p>
+            <a href="register.php"><button class="signup-btn">Sign Up</button></a>
+        </div>
+    </div>
+
 </body>
 </html>
