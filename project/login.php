@@ -2,6 +2,8 @@
 include('../includes/db.php');
 include('../includes/functions.php');
 
+$error_message = ""; // Initialize error message
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = cleanInput($_POST['email']);
     $password = $_POST['password'];
@@ -20,11 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: dashboard.php");
         exit();
     } else {
-        $error_message = "Invalid email or password.";
+        $error_message = "Invalid email or password."; // Error message for invalid login
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -148,8 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <!-- Login Box -->
         <div class="login-container">
             <h2>Login</h2>
-            <?php if (!empty($error)): ?>
-                <p class="error-message"><?php echo $error; ?></p>
+            <?php if (!empty($error_message)): ?> <!-- Check for error message -->
+                <p class="error-message"><?php echo $error_message; ?></p> <!-- Display error message -->
             <?php endif; ?>
             <form action="login.php" method="POST">
                 <input type="email" name="email" placeholder="name@mail.com" required>

@@ -1,27 +1,26 @@
 <?php
 session_start();
-include('../includes/db.php');
-include('../includes/functions.php');
+require_once '../includes/db.php';
 
-// Check if the user is logged in
+// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// Check if list_id is provided
+$user_id = $_SESSION['user_id'];
+
+// Check if list_id is provided in the URL
 if (!isset($_GET['list_id'])) {
     header("Location: dashboard.php");
     exit();
 }
 
 $list_id = $_GET['list_id'];
-$user_id = $_SESSION['user_id'];
 
-// Fetch list details and verify ownership
-$sql = "SELECT * FROM todo_lists WHERE id = :list_id AND user_id = :user_id";
-$stmt = $pdo->prepare($sql);
-$stmt->execute(['list_id' => $list_id, 'user_id' => $user_id]);
+// Fetch the list details
+$stmt = $pdo->prepare("SELECT * FROM todo_lists WHERE id = ? AND user_id = ?");
+$stmt->execute([$list_id, $user_id]);
 $list = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$list) {
@@ -29,34 +28,50 @@ if (!$list) {
     exit();
 }
 
-// Get filter parameters
-$status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Fetch tasks for the list
+$stmt = $pdo->prepare("SELECT * FROM tasks WHERE list_id = ?");
+$stmt->execute([$list_id]);
+$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch tasks with filters
-$sql_tasks = "SELECT * FROM tasks WHERE list_id = :list_id";
+// Handle new task submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['description'])) {
+    $description = trim($_POST['description']);
 
-if ($status_filter === 'completed') {
-    $sql_tasks .= " AND is_completed = 1";
-} elseif ($status_filter === 'incomplete') {
-    $sql_tasks .= " AND is_completed = 0";
+    // Validate the input
+    if (!empty($description)) {
+        $stmt = $pdo->prepare("INSERT INTO tasks (list_id, description) VALUES (?, ?)");
+        $stmt->execute([$list_id, $description]);
+        // Redirect to the same page to avoid form resubmission
+        header("Location: view_tasks.php?list_id=$list_id");
+        exit();
+    } else {
+        $error_message = "Task description cannot be empty.";
+    }
 }
 
-if (!empty($search_query)) {
-    $sql_tasks .= " AND description LIKE :search";
+// Handle task completion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_tasks'])) {
+    $completed_tasks = $_POST['complete_tasks'];
+
+    // Mark the checked tasks as completed
+    foreach ($completed_tasks as $task_id) {
+        $stmt = $pdo->prepare("UPDATE tasks SET is_completed = 1 WHERE id = ? AND list_id = ?");
+        $stmt->execute([$task_id, $list_id]);
+    }
+
+    // Mark the unchecked tasks as pending
+    $all_task_ids = array_column($tasks, 'id'); // Get all task IDs
+    $unchecked_tasks = array_diff($all_task_ids, $completed_tasks); // Find unchecked task IDs
+
+    foreach ($unchecked_tasks as $task_id) {
+        $stmt = $pdo->prepare("UPDATE tasks SET is_completed = 0 WHERE id = ? AND list_id = ?");
+        $stmt->execute([$task_id, $list_id]);
+    }
+
+    // Redirect to the same page to refresh the task list
+    header("Location: view_tasks.php?list_id=$list_id");
+    exit();
 }
-
-$sql_tasks .= " ORDER BY id DESC";
-
-$stmt_tasks = $pdo->prepare($sql_tasks);
-$params = ['list_id' => $list_id];
-
-if (!empty($search_query)) {
-    $params['search'] = "%$search_query%";
-}
-
-$stmt_tasks->execute($params);
-$tasks = $stmt_tasks->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -64,137 +79,104 @@ $tasks = $stmt_tasks->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($list['title']); ?> - Tasks</title>
+    <title>Tasks for <?php echo htmlspecialchars($list['title']); ?></title>
+    <link rel="stylesheet" href="../includes/styles.css"> <!-- Link to external CSS file -->
     <style>
-        /* Menggunakan style yang sama dengan dashboard */
         body {
-            background-color: #f0f2f5;
             font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
-            padding: 0;
-        }
-
-        .navbar {
-            background-color: #1e69de;
-            padding: 15px;
-            color: white;
-            text-align: center;
-        }
-
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin: 0 15px;
-            font-weight: bold;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
         }
-
-        .filters {
-            margin: 20px 0;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        h1, h2 {
+            color: #333;
         }
-
-        .search-bar {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 15px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-        }
-
-        .filter-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 20px;
-            background-color: #f0f0f0;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .filter-button.active {
-            background-color: #1e69de;
-            color: white;
-        }
-
-        .task-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
+        a {
+            display: inline-block;
             margin: 10px 0;
-            background-color: #f8f9fa;
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
             border-radius: 8px;
-            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
-
-        .task-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
-
-        .task-item.completed {
-            background-color: #e8f5e9;
-        }
-
-        .task-checkbox {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .task-description {
-            flex: 1;
-            font-size: 1em;
-        }
-
-        .task-description.completed {
-            text-decoration: line-through;
-            color: #666;
-        }
-
-        .btn {
-            padding: 8px 15px;
+        input[type="submit"] {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            text-decoration: none;
-            font-size: 0.9em;
-            transition: background-color 0.3s;
         }
-
-        .btn-delete {
-            background-color: #dc3545;
-            color: white;
+        input[type="submit"]:hover {
+            background-color: #218838;
         }
-
-        .add-form {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
+        ul {
+            list-style-type: none;
+            padding: 0;
         }
-
-        .add-input {
-            flex: 1;
-            padding: 8px 15px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
+        li {
+            background: #fff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <h2><?php echo htmlspecialchars($list['title']); ?>
+    <h1>Tasks for <?php echo htmlspecialchars($list['title']); ?></h1>
+    <a href="dashboard.php">Back to Dashboard</a>
+
+    <h2>Add New Task</h2>
+    <form action="" method="POST">
+        <input type="text" name="description" placeholder="Task description..." required>
+        <input type="submit" value="Add Task">
+    </form>
+
+    <?php if (isset($error_message)): ?>
+        <p style="color: red;"><?php echo htmlspecialchars($error_message); ?></p>
+    <?php endif; ?>
+
+    <h2>Existing Tasks</h2>
+    <form action="" method="POST">
+        <ul>
+            <?php if (count($tasks) > 0): ?>
+                <?php foreach ($tasks as $task): ?>
+                    <li>
+                        <input type="checkbox" name="complete_tasks[]" value="<?php echo $task['id']; ?>" <?php echo $task['is_completed'] ? 'checked' : ''; ?>>
+                        <?php echo htmlspecialchars($task['description']); ?>
+                        <?php if ($task['is_completed']): ?>
+                            (Completed)
+                        <?php else: ?>
+                            (Pending)
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No tasks found.</p>
+            <?php endif; ?>
+        </ul>
+
+        <input type="submit" value="Mark as Completed">
+    </form>
+
+</body>
+</html>

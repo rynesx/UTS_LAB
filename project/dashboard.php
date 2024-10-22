@@ -20,7 +20,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute(['id' => $user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch todo lists with search functionality
+// Fetch todo lists with search and filter functionality
 $sql_lists = "SELECT todo_lists.*, 
     COUNT(tasks.id) as total_tasks,
     SUM(tasks.is_completed) as completed_tasks
@@ -28,11 +28,20 @@ $sql_lists = "SELECT todo_lists.*,
     LEFT JOIN tasks ON todo_lists.id = tasks.list_id
     WHERE todo_lists.user_id = :user_id";
 
+// Use GROUP BY before HAVING
+$sql_lists .= " GROUP BY todo_lists.id ";
+
+if ($status_filter === 'completed') {
+    $sql_lists .= " HAVING total_tasks > 0 AND total_tasks = completed_tasks";
+} elseif ($status_filter === 'pending') {
+    $sql_lists .= " HAVING total_tasks > 0 AND completed_tasks < total_tasks";
+}
+
 if (!empty($search_query)) {
     $sql_lists .= " AND (todo_lists.title LIKE :search OR tasks.description LIKE :search)";
 }
 
-$sql_lists .= " GROUP BY todo_lists.id ORDER BY todo_lists.id DESC";
+$sql_lists .= " ORDER BY todo_lists.id DESC";
 
 $stmt_lists = $pdo->prepare($sql_lists);
 $params = ['user_id' => $user_id];
@@ -224,6 +233,11 @@ $list_items = $stmt_lists->fetchAll(PDO::FETCH_ASSOC);
                            value="<?php echo htmlspecialchars($search_query); ?>">
                     <button type="submit" class="btn btn-view">Search</button>
                 </form>
+                <div>
+                    <a href="?status=all" class="filter-button <?php echo $status_filter === 'all' ? 'active' : ''; ?>">All Tasks</a>
+                    <a href="?status=completed" class="filter-button <?php echo $status_filter === 'completed' ? 'active' : ''; ?>">Completed Tasks</a>
+                    <a href="?status=pending" class="filter-button <?php echo $status_filter === 'pending' ? 'active' : ''; ?>">Pending Tasks</a>
+                </div>
             </div>
 
             <div class="todo-list">
