@@ -26,15 +26,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Register</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(to bottom right, #6DB3F2, #1E69DE);
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+   margin: 0;
+   padding: 0;
+   font-family: Arial, sans-serif;  
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   height: 100vh;
+    background: linear-gradient(
+        -45deg,
+        #6DB3F2,
+        #1E69DE,
+        #003CBE,
+        #0066FF,
+        #6DB3F2
+    );
+    background-size: 300% 300%;
+    animation: gradientAnimation 8s ease-in-out infinite alternate;
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 0%;
+    }
+    25% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    75% {
+        background-position: 0% 100%;
+    }
+    100% {
+        background-position: 0% 0%;
+    }
+}
 
         .container {
             display: flex;
