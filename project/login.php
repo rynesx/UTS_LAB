@@ -2,15 +2,16 @@
 include('../includes/db.php');
 include('../includes/functions.php');
 
-$error_message = ""; // Inisialisasi pesan kesalahan
+$error_message = ""; // Initialize error message
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Sanitize input
     $email = cleanInput($_POST['email']);
     $password = $_POST['password'];
 
-    // Memastikan email menggunakan domain @gmail.com
+    // Ensure email uses @gmail.com domain
     if (strpos($email, '@gmail.com') === false) {
-        $error_message = "Email harus menggunakan domain @gmail.com.";
+        $error_message = "Email must use the @gmail.com domain.";
     } else {
         // Prepare and execute the SQL statement to get the user
         $sql = "SELECT * FROM users WHERE email = :email";
@@ -20,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Check if user exists and verify password
         if ($user && password_verify($password, $user['password'])) {
-            // Successful login logic (e.g., starting session, redirecting)
+            // Successful login logic
             session_start();
             $_SESSION['user_id'] = $user['id'];
             header("Location: dashboard.php");
@@ -175,7 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-
     <div class="container">
         <!-- Login Box -->
         <div class="login-container">
