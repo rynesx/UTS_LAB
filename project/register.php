@@ -2,19 +2,36 @@
 include('../includes/db.php');
 include('../includes/functions.php');
 
+$error_message = ""; // Inisialisasi pesan kesalahan
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Mengambil dan membersihkan input
     $username = cleanInput($_POST['username']);
     $email = cleanInput($_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
+    
+    // Memastikan email menggunakan domain @gmail.com
+    if (strpos($email, '@gmail.com') === false) {
+        $error_message = "Email harus menggunakan domain @gmail.com.";
+    } else {
+        // Hash password
+        $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    // Insert user into the database
-    $sql = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['username' => $username, 'email' => $email, 'password' => $password]);
+        // Memastikan tidak ada duplikat email sebelum memasukkan
+        $stmtCheck = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+        $stmtCheck->execute(['email' => $email]);
+        if ($stmtCheck->rowCount() > 0) {
+            $error_message = "Email sudah terdaftar."; // Pesan kesalahan jika email sudah ada
+        } else {
+            // Masukkan pengguna ke database
+            $sql = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['username' => $username, 'email' => $email, 'password' => $password]);
 
-    // Redirect to the login page after registration
-    header("Location: login.php");
-    exit();
+            // Redirect ke halaman login setelah registrasi
+            header("Location: login.php");
+            exit();
+        }
+    }
 }
 ?>
 
@@ -26,42 +43,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Register</title>
     <style>
         body {
-   margin: 0;
-   padding: 0;
-   font-family: Arial, sans-serif;  
-   display: flex;
-   justify-content: center;
-   align-items: center;
-   height: 100vh;
-    background: linear-gradient(
-        -45deg,
-        #6DB3F2,
-        #1E69DE,
-        #003CBE,
-        #0066FF,
-        #6DB3F2
-    );
-    background-size: 300% 300%;
-    animation: gradientAnimation 8s ease-in-out infinite alternate;
-}
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;  
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(
+                -45deg,
+                #6DB3F2,
+                #1E69DE,
+                #003CBE,
+                #0066FF,
+                #6DB3F2
+            );
+            background-size: 300% 300%;
+            animation: gradientAnimation 8s ease-in-out infinite alternate;
+        }
 
-@keyframes gradientAnimation {
-    0% {
-        background-position: 0% 0%;
-    }
-    25% {
-        background-position: 100% 0%;
-    }
-    50% {
-        background-position: 100% 100%;
-    }
-    75% {
-        background-position: 0% 100%;
-    }
-    100% {
-        background-position: 0% 0%;
-    }
-}
+        @keyframes gradientAnimation {
+            0% {
+                background-position: 0% 0%;
+            }
+            25% {
+                background-position: 100% 0%;
+            }
+            50% {
+                background-position: 100% 100%;
+            }
+            75% {
+                background-position: 0% 100%;
+            }
+            100% {
+                background-position: 0% 0%;
+            }
+        }
 
         .container {
             display: flex;
@@ -130,8 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <div class="container">
-        <div class="register-container">
+    <div class="register-container">
             <h2>Register Here!</h2>
+            <?php if (!empty($error_message)): ?> <!-- Menampilkan pesan kesalahan jika ada -->
+                <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p>
+            <?php endif; ?>
             <form action="register.php" method="POST">
                 <input type="text" name="username" placeholder="Username" required>
                 <input type="email" name="email" placeholder="Email" required>

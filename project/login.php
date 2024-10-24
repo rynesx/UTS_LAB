@@ -5,28 +5,29 @@ include('../includes/functions.php');
 $error_message = ""; // Inisialisasi pesan kesalahan
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Membersihkan dan menyiapkan input
     $email = cleanInput($_POST['email']);
     $password = $_POST['password'];
-    
-    // Jika `cleanInput` tidak menangani sanitasi password, sebaiknya jangan masukkan password ke database langsung
-    // Pastikan `cleanInput` melakukan sanitasi dengan benar
 
-    // Persiapkan dan eksekusi pernyataan SQL untuk mendapatkan pengguna
-    $sql = "SELECT * FROM users WHERE email = :email";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['email' => $email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Memeriksa apakah pengguna ada dan memverifikasi password
-    if ($user && password_verify($password, $user['password'])) {
-        // Logika login berhasil (misalnya, memulai sesi, pengalihan)
-        session_start();
-        $_SESSION['user_id'] = $user['id'];
-        header("Location: dashboard.php");
-        exit();
+    // Memastikan email menggunakan domain @gmail.com
+    if (strpos($email, '@gmail.com') === false) {
+        $error_message = "Email harus menggunakan domain @gmail.com.";
     } else {
-        $error_message = "Email atau password tidak valid."; // Pesan kesalahan untuk login tidak valid
+        // Prepare and execute the SQL statement to get the user
+        $sql = "SELECT * FROM users WHERE email = :email";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Check if user exists and verify password
+        if ($user && password_verify($password, $user['password'])) {
+            // Successful login logic (e.g., starting session, redirecting)
+            session_start();
+            $_SESSION['user_id'] = $user['id'];
+            header("Location: dashboard.php");
+            exit();
+        } else {
+            $error_message = "Invalid email or password."; // Error message for invalid login
+        }
     }
 }
 ?>
@@ -176,20 +177,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 
     <div class="container">
-        <!-- Kotak Login -->
+        <!-- Login Box -->
         <div class="login-container">
             <h2>Login</h2>
-            <?php if (!empty($error_message)): ?> <!-- Cek pesan kesalahan -->
-                <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p> <!-- Tampilkan pesan kesalahan -->
+            <?php if (!empty($error_message)): ?> <!-- Check for error message -->
+                <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p> <!-- Display error message -->
             <?php endif; ?>
             <form action="login.php" method="POST">
-                <input type="email" name="email" placeholder="name@mail.com" required>
+                <input type="email" name="email" placeholder="name@gmail.com" required>
                 <input type="password" name="password" placeholder="********" required>
                 <input type="submit" value="Log In">
             </form>
         </div>
 
-        <!-- Kotak Daftar -->
+        <!-- Sign Up Box -->
         <div class="signup-container">
             <h3>Belum bergabung?</h3>
             <p>Gabung sekarang untuk mendapatkan akses penuh.</p>
