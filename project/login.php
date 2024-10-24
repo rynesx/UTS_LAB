@@ -2,27 +2,31 @@
 include('../includes/db.php');
 include('../includes/functions.php');
 
-$error_message = ""; // Initialize error message
+$error_message = ""; // Inisialisasi pesan kesalahan
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Membersihkan dan menyiapkan input
     $email = cleanInput($_POST['email']);
     $password = $_POST['password'];
+    
+    // Jika `cleanInput` tidak menangani sanitasi password, sebaiknya jangan masukkan password ke database langsung
+    // Pastikan `cleanInput` melakukan sanitasi dengan benar
 
-    // Prepare and execute the SQL statement to get the user
+    // Persiapkan dan eksekusi pernyataan SQL untuk mendapatkan pengguna
     $sql = "SELECT * FROM users WHERE email = :email";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Check if user exists and verify password
+    // Memeriksa apakah pengguna ada dan memverifikasi password
     if ($user && password_verify($password, $user['password'])) {
-        // Successful login logic (e.g., starting session, redirecting)
+        // Logika login berhasil (misalnya, memulai sesi, pengalihan)
         session_start();
         $_SESSION['user_id'] = $user['id'];
         header("Location: dashboard.php");
         exit();
     } else {
-        $error_message = "Invalid email or password."; // Error message for invalid login
+        $error_message = "Email atau password tidak valid."; // Pesan kesalahan untuk login tidak valid
     }
 }
 ?>
@@ -34,43 +38,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
-body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: linear-gradient(
-        -45deg,
-        #6DB3F2,
-        #1E69DE,
-        #003CBE,
-        #0066FF,
-        #6DB3F2
-    );
-    background-size: 300% 300%;
-    animation: gradientAnimation 8s ease-in-out infinite alternate;
-}
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(
+                -45deg,
+                #6DB3F2,
+                #1E69DE,
+                #003CBE,
+                #0066FF,
+                #6DB3F2
+            );
+            background-size: 300% 300%;
+            animation: gradientAnimation 8s ease-in-out infinite alternate;
+        }
 
-@keyframes gradientAnimation {
-    0% {
-        background-position: 0% 0%;
-    }
-    25% {
-        background-position: 100% 0%;
-    }
-    50% {
-        background-position: 100% 100%;
-    }
-    75% {
-        background-position: 0% 100%;
-    }
-    100% {
-        background-position: 0% 0%;
-    }
-}
+        @keyframes gradientAnimation {
+            0% {
+                background-position: 0% 0%;
+            }
+            25% {
+                background-position: 100% 0%;
+            }
+            50% {
+                background-position: 100% 100%;
+            }
+            75% {
+                background-position: 0% 100%;
+            }
+            100% {
+                background-position: 0% 0%;
+            }
+        }
 
         .container {
             display: flex;
@@ -129,7 +133,6 @@ body {
             background-color: #f1f1f1;
         }
 
-        /* Box sign-up */
         .signup-container {
             flex: 1;
             background-color: rgba(255, 255, 255, 0.2);
@@ -173,11 +176,11 @@ body {
 <body>
 
     <div class="container">
-        <!-- Login Box -->
+        <!-- Kotak Login -->
         <div class="login-container">
             <h2>Login</h2>
-            <?php if (!empty($error_message)): ?> <!-- Check for error message -->
-                <p class="error-message"><?php echo $error_message; ?></p> <!-- Display error message -->
+            <?php if (!empty($error_message)): ?> <!-- Cek pesan kesalahan -->
+                <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p> <!-- Tampilkan pesan kesalahan -->
             <?php endif; ?>
             <form action="login.php" method="POST">
                 <input type="email" name="email" placeholder="name@mail.com" required>
@@ -186,7 +189,7 @@ body {
             </form>
         </div>
 
-        <!-- Sign Up Box -->
+        <!-- Kotak Daftar -->
         <div class="signup-container">
             <h3>Belum bergabung?</h3>
             <p>Gabung sekarang untuk mendapatkan akses penuh.</p>
