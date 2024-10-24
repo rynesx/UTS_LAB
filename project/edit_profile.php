@@ -1,37 +1,54 @@
 <?php
+session_start();
 include('../includes/db.php');
 include('../includes/functions.php');
-checkLogin();
+checkLogin(); // Pastikan pengguna sudah login
 
 $user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Mengambil dan membersihkan input
     $username = cleanInput($_POST['username']);
     $email = cleanInput($_POST['email']);
     $password = cleanInput($_POST['password']);
 
+    // Validasi email untuk memastikan format yang benar
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo "Format email tidak valid.";
+        exit();
+    }
+
     // Password update logic
-    $update_query = "UPDATE users SET username = :username, email = :email" . (!empty($password) ? ", password = :password" : "") . " WHERE id = :id";
+    $update_query = "UPDATE users SET username = :username, email = :email" .
+                    (!empty($password) ? ", password = :password" : "") . 
+                    " WHERE id = :id";
     $stmt = $pdo->prepare($update_query);
-    
-    // Only bind password if it's provided
+
+    // Hanya mengikat password jika disediakan
     if (!empty($password)) {
+        // Menghash password sebelum menyimpannya
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hashed_password, 'id' => $user_id]);
     } else {
         $stmt->execute(['username' => $username, 'email' => $email, 'id' => $user_id]);
     }
 
-    // Redirect to profile.php after updating
+    // Redirect ke profile.php setelah memperbarui
     header("Location: profile.php");
-    exit(); // Ensure no further code is executed
+    exit(); // Pastikan tidak ada kode lain yang dieksekusi
 }
 
-// Fetch user data
+// Mengambil data pengguna
 $sql = "SELECT * FROM users WHERE id = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['id' => $user_id]);
 $user = $stmt->fetch();
+
+if (!$user) {
+    // Menangani jika pengguna tidak ditemukan
+    echo "Pengguna tidak ditemukan.";
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
