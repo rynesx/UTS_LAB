@@ -3,24 +3,20 @@ session_start();
 include('../includes/db.php');
 include('../includes/functions.php');
 
-// Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// Get filter parameters
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'all';
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Fetch user data from the database
 $user_id = $_SESSION['user_id'];
 $sql = "SELECT username, email FROM users WHERE id = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['id' => $user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch todo lists with search and filter functionality
 $sql_lists = "SELECT todo_lists.*, 
     COUNT(tasks.id) as total_tasks,
     SUM(CASE WHEN tasks.is_completed THEN 1 ELSE 0 END) as completed_tasks
@@ -28,15 +24,12 @@ $sql_lists = "SELECT todo_lists.*,
     LEFT JOIN tasks ON todo_lists.id = tasks.list_id
     WHERE todo_lists.user_id = :user_id";
 
-// Add search condition in WHERE clause
 if (!empty($search_query)) {
     $sql_lists .= " AND (todo_lists.title LIKE :search OR tasks.description LIKE :search)";
 }
 
-// Group by after all WHERE conditions
 $sql_lists .= " GROUP BY todo_lists.id, todo_lists.title, todo_lists.user_id";
 
-// Add HAVING conditions for status filtering
 if ($status_filter === 'completed') {
     $sql_lists .= " HAVING total_tasks > 0 AND total_tasks = completed_tasks";
 } elseif ($status_filter === 'pending') {
@@ -61,7 +54,6 @@ $list_items = $stmt_lists->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
     <style>
-    /* Animated gradient styles */
 body {
     background: linear-gradient(135deg, #6D53DC 0%, #DC5356 100%);
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -71,7 +63,6 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     
-    /* Tambahkan properti untuk animasi gradient */
     background-size: 400% 400%;
     animation: gradientBody 15s ease infinite;
 }
@@ -83,12 +74,10 @@ body {
     text-align: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     
-    /* Tambahkan properti untuk animasi gradient */
     background-size: 400% 400%;
     animation: gradientNav 12s ease infinite;
 }
 
-/* Animasi untuk body */
 @keyframes gradientBody {
     0% {
         background-position: 0% 50%;
@@ -101,7 +90,6 @@ body {
     }
 }
 
-/* Animasi untuk navbar */
 @keyframes gradientNav {
     0% {
         background-position: 0% 50%;

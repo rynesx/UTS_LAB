@@ -2,7 +2,6 @@
 session_start();
 require_once '../includes/db.php';
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -10,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Check if list_id is provided in the URL
 if (!isset($_GET['list_id'])) {
     header("Location: dashboard.php");
     exit();
@@ -18,7 +16,6 @@ if (!isset($_GET['list_id'])) {
 
 $list_id = $_GET['list_id'];
 
-// Fetch the list details
 $stmt = $pdo->prepare("SELECT * FROM todo_lists WHERE id = ? AND user_id = ?");
 $stmt->execute([$list_id, $user_id]);
 $list = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -28,20 +25,16 @@ if (!$list) {
     exit();
 }
 
-// Fetch tasks for the list
 $stmt = $pdo->prepare("SELECT * FROM tasks WHERE list_id = ?");
 $stmt->execute([$list_id]);
 $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Handle new task submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['description'])) {
     $description = trim($_POST['description']);
 
-    // Validate the input
     if (!empty($description)) {
         $stmt = $pdo->prepare("INSERT INTO tasks (list_id, description) VALUES (?, ?)");
         $stmt->execute([$list_id, $description]);
-        // Redirect to the same page to avoid form resubmission
         header("Location: view_tasks.php?list_id=$list_id");
         exit();
     } else {
@@ -49,26 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['description'])) {
     }
 }
 
-// Handle task completion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_tasks'])) {
     $completed_tasks = $_POST['complete_tasks'];
 
-    // Mark the checked tasks as completed
     foreach ($completed_tasks as $task_id) {
         $stmt = $pdo->prepare("UPDATE tasks SET is_completed = 1 WHERE id = ? AND list_id = ?");
         $stmt->execute([$task_id, $list_id]);
     }
 
-    // Mark the unchecked tasks as pending
-    $all_task_ids = array_column($tasks, 'id'); // Get all task IDs
-    $unchecked_tasks = array_diff($all_task_ids, $completed_tasks); // Find unchecked task IDs
+    $all_task_ids = array_column($tasks, 'id');
+    $unchecked_tasks = array_diff($all_task_ids, $completed_tasks);
 
     foreach ($unchecked_tasks as $task_id) {
         $stmt = $pdo->prepare("UPDATE tasks SET is_completed = 0 WHERE id = ? AND list_id = ?");
         $stmt->execute([$task_id, $list_id]);
     }
 
-    // Redirect to the same page to refresh the task list
     header("Location: view_tasks.php?list_id=$list_id");
     exit();
 }
@@ -80,9 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_tasks'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tasks for <?php echo htmlspecialchars($list['title']); ?></title>
-    <link rel="stylesheet" href="../includes/styles.css"> <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="../includes/styles.css">
     <style>
-/* Modern CSS with enhanced visual design */
 :root {
     --primary-color: #2196F3;
     --secondary-color: #1976D2;
@@ -97,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_tasks'])) {
 
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    /* Gradient option 1: Soft Blue-Purple */
     background: linear-gradient(135deg, #8D60BE  0%, #F2D49E 100%);
     background-size: 400% 400%;
     animation: gradientBG 15s ease infinite;
@@ -109,7 +96,6 @@ body {
     min-height: 100vh;
 }
 
-/* Animation for gradient movement */
 @keyframes gradientBG {
     0% {
         background-position: 0% 50%;
@@ -159,13 +145,13 @@ a:hover {
 }
 
 form {
-    background: rgba(255, 255, 255, 0.9);  /* Semi-transparent white */
+    background: rgba(255, 255, 255, 0.9);
     padding: 30px;
     border-radius: 12px;
     box-shadow: var(--shadow-md);
     margin-bottom: 30px;
     transition: transform var(--transition-speed) ease;
-    backdrop-filter: blur(10px);  /* Frosted glass effect */
+    backdrop-filter: blur(10px);
 }
 
 form:hover {
@@ -215,14 +201,14 @@ ul {
 }
 
 li {
-    background: rgba(255, 255, 255, 0.9);  /* Semi-transparent white */
+    background: rgba(255, 255, 255, 0.9);
     padding: 15px 20px;
     margin: 10px 0;
     border-radius: 10px;
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-speed) ease;
     border-left: 4px solid var(--primary-color);
-    backdrop-filter: blur(10px);  /* Frosted glass effect */
+    backdrop-filter: blur(10px);
 }
 
 li:hover {
@@ -230,7 +216,6 @@ li:hover {
     box-shadow: var(--shadow-md);
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     body {
         padding: 15px;

@@ -2,32 +2,26 @@
 include('../includes/db.php');
 include('../includes/functions.php');
 
-$error_message = ""; // Inisialisasi pesan kesalahan
+$error_message = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Mengambil dan membersihkan input
     $username = cleanInput($_POST['username']);
     $email = cleanInput($_POST['email']);
     
-    // Memastikan email menggunakan domain @gmail.com
     if (strpos($email, '@gmail.com') === false) {
         $error_message = "Email harus menggunakan domain @gmail.com.";
     } else {
-        // Hash password
         $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-        // Memastikan tidak ada duplikat email sebelum memasukkan
         $stmtCheck = $pdo->prepare("SELECT * FROM users WHERE email = :email");
         $stmtCheck->execute(['email' => $email]);
         if ($stmtCheck->rowCount() > 0) {
-            $error_message = "Email sudah terdaftar."; // Pesan kesalahan jika email sudah ada
+            $error_message = "Email sudah terdaftar.";
         } else {
-            // Masukkan pengguna ke database
             $sql = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['username' => $username, 'email' => $email, 'password' => $password]);
 
-            // Redirect ke halaman login setelah registrasi
             header("Location: login.php");
             exit();
         }
@@ -149,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="container">
     <div class="register-container">
             <h2>Register Here!</h2>
-            <?php if (!empty($error_message)): ?> <!-- Menampilkan pesan kesalahan jika ada -->
+            <?php if (!empty($error_message)): ?>
                 <p class="error-message"><?php echo htmlspecialchars($error_message); ?></p>
             <?php endif; ?>
             <form action="register.php" method="POST">

@@ -2,50 +2,42 @@
 session_start();
 include('../includes/db.php');
 include('../includes/functions.php');
-checkLogin(); // Pastikan pengguna sudah login
+checkLogin();
 
 $user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Mengambil dan membersihkan input
     $username = cleanInput($_POST['username']);
     $email = cleanInput($_POST['email']);
     $password = cleanInput($_POST['password']);
 
-    // Validasi email untuk memastikan format yang benar
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo "Format email tidak valid.";
         exit();
     }
 
-    // Password update logic
     $update_query = "UPDATE users SET username = :username, email = :email" .
                     (!empty($password) ? ", password = :password" : "") . 
                     " WHERE id = :id";
     $stmt = $pdo->prepare($update_query);
 
-    // Hanya mengikat password jika disediakan
     if (!empty($password)) {
-        // Menghash password sebelum menyimpannya
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hashed_password, 'id' => $user_id]);
     } else {
         $stmt->execute(['username' => $username, 'email' => $email, 'id' => $user_id]);
     }
 
-    // Redirect ke profile.php setelah memperbarui
     header("Location: profile.php");
-    exit(); // Pastikan tidak ada kode lain yang dieksekusi
+    exit();
 }
 
-// Mengambil data pengguna
 $sql = "SELECT * FROM users WHERE id = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['id' => $user_id]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    // Menangani jika pengguna tidak ditemukan
     echo "Pengguna tidak ditemukan.";
     exit();
 }
@@ -57,7 +49,7 @@ if (!$user) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to an external CSS file -->
+    <link rel="stylesheet" href="styles.css">
     <style>
 body {
     font-family: Arial, sans-serif;
@@ -69,7 +61,6 @@ body {
     justify-content: center;
     align-items: center;
     
-    /* Properti untuk animasi gradient */
     background-size: 400% 400%;
     animation: gradientAnimation 15s ease infinite;
 }
@@ -86,7 +77,6 @@ body {
     }
 }
 
-/* Optional: menambahkan smooth scrolling untuk pengalaman yang lebih baik */
 html {
     scroll-behavior: smooth;
 }
@@ -97,7 +87,7 @@ html {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    text-align: center; /* Center the text inside the box */
+    text-align: center;
 }
 
 h2 {
